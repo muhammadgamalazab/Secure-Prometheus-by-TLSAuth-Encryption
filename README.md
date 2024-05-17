@@ -1,27 +1,35 @@
-# Securing Prometheus with TLS Authentication and SSL Encryption
+# Prometheus-Security-with-TLS-Authentication-and-Encryption
+### Encryption
+* Certificates should be created first in node exporter<br>
+`sudo openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout node_exporter.key -out node_exporter.crt -subj "/C=US/ST=California/L=Oakland/O=MyOrg/CN=localhost" -addext "subjectAltName = DNS:localhost"`<br>
+* Create a folder in node_exporter in /etc<br>
+`sudo mkdir /etc/node_exporter`<br>
+* Move the generated keys to the above folder<br>
+`sudo mv node_exporter.* /etc/node_exporter/`<br>
+* Create a config.ymlfile with the below content in the same directory<br>
+  `tls_server_config:<br>
+      cert_file: node_exporter.crt<br>
+      key_file: node_exporter.key`<br>
+* Update the permission to the folder for the user node_exporter<br>
+  `sudo chown -R node_exporter:node_exporter /etc/node_exporter`<br>
+* Update the systemd service of node_exporter with TLS config as below<br>
+`sudo vim /etc/systemd/system/node_exporter.service`<br>
+* Reload the daemon and restart the node_exporter<br>
+`sudo systemctl daemon-reload<br>
+sudo systemctl restart node_exporter`<br>
+* Now we need to update Prometheus conf to get metrics from nodes with HTTPS endpoints<br>
+* Copy the `node_exporter.crt` file from the node exporter server to the Prometheus server at `/etc/prometheus`<br>
+* Update the permission to the CRT file<br>
+`sudo chown prometheus:prometheus node_exporter.crt`<br>
+* Update the config at a specific target with scheme, tls changes in Prometheus configuration
 
-This repository provides a guide on how to secure your Prometheus server and its targets using TLS authentication and SSL encryption.
-
-## Table of Contents
-1. [Introduction](#introduction)
-2. [Requirements](#requirements)
-3. [Generate SSL Certificates](#generate-ssl-certificates)
-4. [Configure Prometheus](#configure-prometheus)
-5. [Configure Prometheus Targets](#configure-prometheus-targets)
-6. [Set Up Basic Authentication](#set-up-basic-authentication)
-7. [Test the Setup](#test-the-setup)
-8. [Conclusion](#conclusion)
-
-## Introduction
-Prometheus is a powerful monitoring tool used to collect and query metrics. By default, Prometheus does not provide authentication, which can be a security risk. This guide will walk you through securing Prometheus and its targets by enabling HTTPS and basic authentication.
-
-## Requirements
-- Prometheus installed and running
-- OpenSSL installed for generating certificates
-- An HTTP reverse proxy such as Nginx or Apache (optional, for managing authentication)
-
-## Generate SSL Certificates
-Use OpenSSL to generate a self-signed SSL certificate for the Prometheus server.
-
-```bash
-openssl req -newkey rsa:2048 -nodes -keyout prometheus.key -x509 -days 365 -out prometheus.crt
+### Authentication
+* Run the below command to create hash, which will prompt for a password<br>
+`sudo apt-get update && sudo apt install apache2-utils -y`<br>
+`htpasswd -nBC 12 "" | tr -d ':\n'`<br>
+* Go back to your node exporter server, and update the config.yml file at /etc/node_exporter<br>
+* Restart the node_exporter<br>
+`sudo systemctl restart node_exporter`<br>
+* we need to update Prometheus conf with username and password at prometheus.yml file with basic_auth in specific job<br>
+* Update the same as above in the Prometheus YAML file and restart the Prometheus server<br>
+`sudo systemctl restart prometheus`
