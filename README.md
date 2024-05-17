@@ -14,6 +14,17 @@
   `sudo chown -R node_exporter:node_exporter /etc/node_exporter`<br>
 * Update the systemd service of node_exporter with TLS config as below<br>
 `sudo vim /etc/systemd/system/node_exporter.service`<br>
+`[Unit]
+Description=Node Exporter
+Wants=network-online.target
+After=network-online.target
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter --web.config.file="/etc/node_exporter/config.yml"
+[Install]
+WantedBy=multi-user.target`
 * Reload the daemon and restart the node_exporter<br>
 `sudo systemctl daemon-reload<br>
 sudo systemctl restart node_exporter`<br>
